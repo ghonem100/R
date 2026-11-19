@@ -1,5 +1,5 @@
 /* PROJECT: BESTIE — service worker (offline + install as app) */
-const CACHE = 'bestie-chase-v1';
+const CACHE = 'bestie-chase-v2';
 const CORE = ['./', 'index.html', 'style.css', 'config.js', 'game.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

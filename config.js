@@ -10,6 +10,9 @@ window.CONFIG = {
   colors: { purple: "#8b5cf6", blue: "#22d3ee", red: "#ff3b6b", gold: "#ffd166", green: "#34d399", bg: "#07060f" },
   sound: true,
 
+  /* 🔐 باسورد أول اللعبة: عيد ميلادك (يوم/شهر). هي لازم تسألك عليه 😏 */
+  password: "30/11",
+
   /* سهولة اللعب: 1 = عادي · 0.8 = أسهل · 1.2 = أصعب */
   difficulty: 1,
 

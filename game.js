@@ -35,26 +35,40 @@ let soundOn = C.sound !== false;
 try { const sv = localStorage.getItem(KEY + '-sound'); if (sv !== null) soundOn = sv === '1'; } catch (e) {}
 
 /* ---------------- sound (Web Audio) ---------------- */
+const SILENT_WAV = 'data:audio/wav;base64,UklGRvQHAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YdAHAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
 const SFX = {
-  ac: null, nb: null,
+  ac: null, nb: null, out: null, html: null,
   init() {
-    if (this.ac) { if (this.ac.state === 'suspended') this.ac.resume(); return; }
-    try { this.ac = new (window.AudioContext || window.webkitAudioContext)();
-      const b = this.ac.createBuffer(1, this.ac.sampleRate * .6, this.ac.sampleRate), d = b.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; this.nb = b; } catch (e) { this.ac = null; }
+    // iOS: خلي الصوت يشتغل حتى لو الموبايل على الصامت
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    if (!this.html) { try { const a = new Audio(SILENT_WAV); a.loop = true; a.setAttribute('playsinline', ''); a.volume = .01; this.html = a; } catch (e) {} }
+    if (this.html && this.html.paused) { const p = this.html.play(); if (p && p.catch) p.catch(() => {}); }
+    if (!this.ac) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+        this.ac = new AC();
+        const comp = this.ac.createDynamicsCompressor(); comp.threshold.value = -10; comp.ratio.value = 4;
+        this.out = this.ac.createGain(); this.out.gain.value = 2.2; this.out.connect(comp); comp.connect(this.ac.destination);
+        const b = this.ac.createBuffer(1, this.ac.sampleRate * .6, this.ac.sampleRate), d = b.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; this.nb = b;
+      } catch (e) { this.ac = null; return; }
+    }
+    if (this.ac.state !== 'running') { try { this.ac.resume(); } catch (e) {} }
+    try { const b = this.ac.createBuffer(1, 1, 22050), s = this.ac.createBufferSource(); s.buffer = b; s.connect(this.ac.destination); s.start(0); } catch (e) {}
   },
   tone(f, d = .15, type = 'sine', v = .1, slide = 0, delay = 0) {
     if (!this.ac || !soundOn) return;
+    if (this.ac.state !== 'running') { try { this.ac.resume(); } catch (e) {} }
     try { const t = this.ac.currentTime + delay, o = this.ac.createOscillator(), g = this.ac.createGain();
       o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
       g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
-      o.connect(g); g.connect(this.ac.destination); o.start(t); o.stop(t + d + .03); } catch (e) {}
+      o.connect(g); g.connect(this.out); o.start(t); o.stop(t + d + .03); } catch (e) {}
   },
   noise(d = .2, v = .08, freq = 1200, delay = 0) {
     if (!this.ac || !soundOn || !this.nb) return;
     try { const t = this.ac.currentTime + delay, s = this.ac.createBufferSource(), f = this.ac.createBiquadFilter(), g = this.ac.createGain();
       s.buffer = this.nb; f.type = 'bandpass'; f.frequency.value = freq; g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
-      s.connect(f); f.connect(g); g.connect(this.ac.destination); s.start(t); s.stop(t + d); } catch (e) {}
+      s.connect(f); f.connect(g); g.connect(this.out); s.start(t); s.stop(t + d); } catch (e) {}
   },
   key() { this.tone(rand(900, 1400), .025, 'square', .018); },
   click() { this.tone(720, .06, 'triangle', .08); },
@@ -77,6 +91,12 @@ const SFX = {
   fanfare() { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => this.tone(f, .35, 'triangle', .09, 0, i * .13)); },
   lose() { [392, 349, 311, 262].forEach((f, i) => this.tone(f, .35, 'sawtooth', .05, 0, i * .22)); }
 };
+
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (soundOn) SFX.init(); }, { capture: true, passive: true }));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { try { SFX.html && SFX.html.pause(); } catch (e) {} }
+  else if (soundOn && SFX.ac) SFX.init();
+});
 
 /* ---------------- typewriter (tap to skip) ---------------- */
 let skip = false;
@@ -801,7 +821,71 @@ async function finale(my) {
   $('.letter').scrollIntoView({ behavior: 'smooth', block: 'center' }); await wait(500); letter();
 }
 
+/* ===================================================================
+   GATE — الباسورد (عيد ميلاد {owner})
+   =================================================================== */
+const digitsOf = v => String(v ?? '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/\D/g, '');
+const PASS = (() => { const parts = String(C.password || '30/11').split(/\D+/).filter(Boolean); return { d: +parts[0], m: +parts[1] }; })();
+function passOk(v) {
+  const t = String(v ?? '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+  const parts = t.split(/\D+/).filter(Boolean);
+  if (parts.length >= 2) return +parts[0] === PASS.d && +parts[1] === PASS.m;
+  const g = digitsOf(t), dd = String(PASS.d), mm = String(PASS.m), d2 = dd.padStart(2, '0'), m2 = mm.padStart(2, '0');
+  return [dd + mm, d2 + m2, dd + m2, d2 + mm].some(x => g === x || (g.startsWith(x) && (g.length === x.length + 2 || g.length === x.length + 4)));
+}
+const GATE_KEY = KEY + '-unlocked';
+const unlocked = () => { try { return localStorage.getItem(GATE_KEY) === '1'; } catch (e) { return false; } };
+const WRONG_PASS = [
+  'غلط 😏 الباسورد مع {owner} بس',
+  'برضه غلط… التخمين مش هينفع، اسأليه 😂',
+  'مشمش بتقولك: «اسأليه بقى بدل ما تتعبي صوابعك» 🐈',
+  'تلميح: هو تاريخ… تاريخ مهم أوي لحد معيّن 🎂',
+  'تلميح أكبر: هو يوم/شهر… وقرّب أوي على فكرة 📅',
+  'إنتي لسه بتخمّني؟! 😭 ابعتيله رسالة وخلاص',
+  'الوكالة بتقترح عليكي تكلّمي {owner}. فورًا. 📞'
+];
+function gate() {
+  flowId++;
+  document.body.dataset.level = 'boot'; document.body.classList.remove('playing');
+  let tries = 0;
+  $('#stage').innerHTML = `<section class="gate fade-in">
+    <div class="lock-ic" id="lk">🔐</div>
+    <div class="classified en">ACCESS RESTRICTED</div>
+    <h2 class="lv-title">الملف ده متقفل بباسورد</h2>
+    <p class="gate-sub">الباسورد مع ${esc(OWNER)} بس 😏<br>عايزاه؟ <b>اسأليه.</b></p>
+    <form class="gate-form" id="gf" autocomplete="off">
+      <input class="inp gate-inp" id="gi" inputmode="numeric" placeholder="؟؟ / ؟؟" maxlength="12" autocomplete="off" aria-label="الباسورد">
+      <button class="btn btn-primary" type="submit">افتحي 🔓</button>
+    </form>
+    <div class="gate-msg" id="gm"></div>
+    <button class="btn btn-ghost" id="dunno">🥺 مش عارفة الباسورد</button>
+  </section>`;
+  const inp = $('#gi'), msg = $('#gm');
+  $('#gf').onsubmit = async e => {
+    e.preventDefault(); SFX.init();
+    const v = inp.value.trim(); if (!v) { shakeEl(inp); return; }
+    tries++;
+    if (passOk(v)) {
+      try { localStorage.setItem(GATE_KEY, '1'); } catch (e2) {}
+      inp.disabled = true; $('#lk').textContent = '🔓'; $('#lk').classList.add('open');
+      SFX.unlock(); flash('ok'); confetti(120);
+      msg.className = 'gate-msg ok';
+      msg.textContent = T(tries === 1 ? 'من أول مرة؟! 🥹 إنتي فاكرة عيد ميلاد {owner}… سجّلنا ده.' : '🎂 صح! ده عيد ميلاد {owner}… يعني إنتي كلّمتيه 😏 برافو.');
+      await wait(2600); boot(); return;
+    }
+    SFX.bad(); flash('bad'); shakeEl(inp); inp.value = '';
+    msg.className = 'gate-msg bad'; msg.textContent = T(WRONG_PASS[Math.min(tries - 1, WRONG_PASS.length - 1)]);
+    if (tries === 3) setTimeout(() => cameo('😼 اسأليه بقى… أنا زهقت'), 600);
+  };
+  $('#dunno').onclick = async () => {
+    SFX.init(); SFX.click();
+    await modal({ title: '🔐 الباسورد فين؟', body: T('الباسورد ده تاريخ يخص <b>{owner}</b> 🎂\nلو مش عارفاه… دي فرصة حلوة تكلّميه وتسأليه 😏\n\n(أيوه، اللعبة اتعملت كده عن قصد)'), buttons: [{ label: 'هسأله 😅', value: 1, cls: 'btn-primary' }] });
+    inp.focus();
+  };
+}
+function shakeEl(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
 /* ---------------- start ---------------- */
 updateHUD();
-boot();
+if (unlocked()) boot(); else gate();
 })();

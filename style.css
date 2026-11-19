@@ -400,3 +400,16 @@ body.playing #stage{visibility:hidden}
 .final .reveal .eq{font-size:clamp(1rem,5vw,1.6rem)}
 .rv-sub{white-space:pre-line;color:var(--ink);margin-top:.8rem;font-size:1.05rem;min-height:4em}
 .final .letter{margin-bottom:1.6rem}
+
+/* ================= password gate ================= */
+.gate{text-align:center;display:flex;flex-direction:column;align-items:center;gap:.8rem}
+.lock-ic{font-size:4.4rem;line-height:1;filter:drop-shadow(0 0 18px rgba(139,92,246,.7));animation:catBob 1.6s ease-in-out infinite}
+.lock-ic.open{animation:popIn .6s cubic-bezier(.2,1.6,.4,1)}
+.gate .classified{font-size:.7rem;letter-spacing:.4em;color:var(--red);border:1px solid var(--red);padding:.25rem .9rem;border-radius:6px;text-shadow:0 0 8px var(--red)}
+.gate-sub{color:var(--muted);font-size:1.05rem;line-height:1.9}
+.gate-sub b{color:var(--gold)}
+.gate-form{display:flex;gap:8px;width:min(340px,88vw);margin-top:.4rem}
+.gate-inp{text-align:center;font-family:"Orbitron","Readex Pro",sans-serif;font-size:1.4rem;letter-spacing:.15em;direction:ltr}
+.gate-msg{min-height:3.2em;max-width:340px;font-size:1rem;line-height:1.7;transition:.3s}
+.gate-msg.bad{color:#ff8fab}
+.gate-msg.ok{color:var(--green);font-weight:700;text-shadow:0 0 10px rgba(52,211,153,.5)}
